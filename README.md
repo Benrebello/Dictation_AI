@@ -4,245 +4,139 @@ A full-stack web application for capturing, transcribing, refining, and sharing 
 
 Developed by **Benjamin Rebello**.
 
----
-
-## Table of Contents
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Installation](#installation)
-  - [Production (Docker + Traefik)](#production-docker--traefik)
-  - [Local Development](#local-development)
-- [Configuration](#configuration)
-  - [Environment Variables](#environment-variables)
-  - [Integrations](#integrations)
-- [Usage](#usage)
-- [Frontend UI & Theming](#frontend-ui--theming)
-- [Contributing](#contributing)
-- [License](#license)
-
----
+-----
 
 ## Features
-- **Dual Audio Input**: Record from microphone or upload audio files (WAV, MP3, etc).
-- **Flexible Transcription**: Choose between local Whisper (privacy) or OpenAI Whisper API (speed/accuracy).
-- **AI-Powered Polishing**: Refine transcriptions with LLMs (OpenAI, Groq, Google Gemini, Anthropic) for professional notes.
-- **Custom Context**: Enhance AI with company/project-specific context.
-- **Slack Integration**: Send notes to Slack channels via webhook.
-- **Email Integration**: Send formatted notes as HTML emails via SMTP.
-- **Privacy & Security**: Credentials/API keys are never stored server-side.
-- **Modern UI**: Responsive, accessible, with FontAwesome icons and dark/light mode.
 
----
+  - **Dual Audio Input**: Record from the microphone or upload existing audio files.
+  - **Flexible Transcription**: Choose between three powerful engines:
+      - **Local Whisper** for maximum privacy.
+      - **OpenAI Whisper API** for high accuracy.
+      - **Deepgram** for industry-leading speed.
+  - **AI-Powered Polishing**: Refine transcriptions with a wide selection of LLMs (OpenAI, Groq, Google Gemini, Anthropic) for professional notes.
+  - **Custom Context**: Enhance AI accuracy with company/project-specific jargon and details.
+  - **Seamless Integrations**: Send polished notes directly to Slack channels via webhook or as formatted HTML emails via SMTP.
+  - **Secure by Design**: Credentials and API keys are handled per-request and are never stored on the server.
+  - **Modern UI**: A responsive and intuitive interface with a dark/light mode toggle.
+
+-----
 
 ## Architecture
 
+The application follows a modern client-server architecture, fully containerized for robust deployment.
+
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant F as Frontend (HTML/CSS/JS)
-    participant N as Nginx Proxy
-    participant B as Backend (FastAPI)
-    participant L as LLMs / Whisper
-    participant S as Slack
-    participant E as Email
+    participant User
+    participant Frontend (Nginx + Vanilla JS)
+    participant Backend (FastAPI)
+    participant External Services
 
-    U->>F: Interact (record/upload, UI)
-    F->>N: API requests (audio, text)
-    N->>B: Proxy API requests
-    B->>L: Transcription/Polishing requests
-    B->>S: Send to Slack (optional)
-    B->>E: Send Email (optional)
-    L-->>B: AI/Transcription result
-    S-->>B: Slack response
-    E-->>B: Email response
-    B-->>F: API response (transcription, status)
-    F-->>U: Display results
+    User->>Frontend: Interacts with UI (records/uploads audio)
+    Frontend->>Backend: /api/transcribe (sends audio file)
+    Backend->>External Services: Processes transcription (Whisper, Deepgram, etc.)
+    External Services-->>Backend: Returns raw text
+    Backend-->>Frontend: Sends transcription result
+    Frontend-->>User: Displays raw transcription
+
+    User->>Frontend: Clicks "Polish Text"
+    Frontend->>Backend: /api/polish (sends raw text + model choice)
+    Backend->>External Services: Sends prompt to selected LLM (OpenAI, Groq, etc.)
+    External Services-->>Backend: Returns polished markdown
+    Backend-->>Frontend: Sends polished HTML
+    Frontend-->>User: Displays polished note
 ```
 
-```
-[User] ⇄ [Frontend (HTML/CSS/JS)] ⇄ [Nginx Proxy] ⇄ [Backend (FastAPI)] ⇄ [LLMs, Whisper, Slack, Email]
-```
-- **Frontend**: Single-page app with vanilla JS, FontAwesome icons, responsive design, and animated controls.
-- **Backend**: FastAPI serves REST endpoints for audio upload, transcription, AI-polishing, and integrations.
-- **Deployment**: Dockerized for easy production use; supports Traefik reverse proxy.
+  - **Frontend**: A lightweight single-page application built with vanilla HTML, CSS, and JavaScript, served by Nginx. The Nginx server also acts as an internal reverse proxy, directing API calls to the backend.
+  - **Backend**: A high-performance, stateless API built with Python and FastAPI. It handles all business logic, including audio processing and communication with external AI services.
 
----
+-----
 
 ## Tech Stack
-- **Backend**: Python, FastAPI, OpenAI Whisper, SMTP, Groq, Google Gemini, Anthropic
-- **Frontend**: HTML, CSS, JavaScript, FontAwesome
-- **Containerization**: Docker, Docker Compose
-- **Reverse Proxy**: Nginx (frontend), Traefik (production)
 
----
+  - **Backend**: Python, FastAPI, OpenAI Whisper, Deepgram, Groq, Google Gemini, Anthropic
+  - **Frontend**: HTML, CSS, JavaScript, FontAwesome
+  - **Containerization**: Docker, Docker Compose
+  - **Reverse Proxy**: Nginx (internal), Traefik (production)
 
-## Installation
+-----
 
-### Production (Docker + Traefik)
+## Installation (Production with Docker + Traefik)
+
 #### Prerequisites
-- Docker & Docker Compose installed
-- Traefik running and joined to a Docker network (e.g. `servidor`)
-- Domain name pointing to your server
 
-#### Project Structure
+  - Docker & Docker Compose installed.
+  - Traefik running and connected to a Docker network (e.g., `servidor`).
+  - A domain name pointing to your server's IP address.
+  - A private container registry (e.g., GitHub Container Registry - `ghcr.io`).
+
+#### 1\. Project Structure
+
+Ensure your project is organized as follows:
+
 ```
 dictation_AI/
 ├── backend/
 │   ├── main.py
 │   ├── requirements.txt
-│   ├── Dockerfile
+│   └── Dockerfile
 ├── frontend/
 │   ├── index.html
 │   ├── main.js
 │   ├── style.css
 │   ├── nginx.conf
-│   ├── Dockerfile
-├── README.md
+│   └── Dockerfile
 ├── docker-compose.yml
+└── README.md
 ```
 
-#### Steps
-1. **Clone the repository**
-2. **Edit `docker-compose.yml`**: Set your domain, Traefik labels, and network.
-3. **Configure environment variables** (see below).
-4. **Upload container in ghcr.io**
-***Access your repo with terminal***: use a command
- ```bash
-  docker login ghcr.io -u YOUR_USER_GITHUB
-  ```
-***Access your repo with terminal***: create and send images of back and front:
-  ```bash
-  docker build -t ghcr.io/youruser/dictation-backend:latest ./backend
+#### 2\. Build and Push Images
 
-  docker push ghcr.io/youruser/dictation-backend:latest
+Before deploying, you must build the images and push them to your container registry.
 
-  docker build -t ghcr.io/benrebello/dictation-frontend:latest ./frontend
+1.  **Login to your registry**:
 
-  docker push ghcr.io/benrebello/dictation-frontend:latest
- ```
+    ```bash
+    docker login ghcr.io -u YOUR_GITHUB_USERNAME
+    ```
 
-5. **Deploy on yout server**: use a docker-compose.yml and rename images
-6. **Access the app at** `https://dictation.your-domain.com`
+    *(Use a Personal Access Token with `write:packages` scope as the password)*
 
-### Local Development
-#### Prerequisites
-- Python 3.10+
-- Node.js (optional, for frontend tooling)
+2.  **Build and push the backend image**:
 
-#### Steps
-1. **Backend**:
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   uvicorn main:app --reload
-   ```
-2. **Frontend**:
-   - Open `frontend/index.html` in your browser, or serve with a simple HTTP server:
-   ```bash
-   cd frontend
-   python3 -m http.server 8080
-   ```
-3. **Connect frontend to backend**: Ensure API endpoints in `main.js` use the correct backend URL.
+    ```bash
+    docker build -t ghcr.io/YOUR_GITHUB_USERNAME/dictation-backend:latest ./backend
+    docker push ghcr.io/YOUR_GITHUB_USERNAME/dictation-backend:latest
+    ```
 
----
+3.  **Build and push the frontend image**:
 
-## Configuration
+    ```bash
+    docker build -t ghcr.io/YOUR_GITHUB_USERNAME/dictation-frontend:latest ./frontend
+    docker push ghcr.io/YOUR_GITHUB_USERNAME/dictation-frontend:latest
+    ```
 
-### Integrations
-- **Slack**: Create an Incoming Webhook, set `SLACK_WEBHOOK_URL`.
-- **Email**: Use SMTP credentials for your provider (Gmail, Outlook, etc).
-- **LLMs**: Set API keys for OpenAI, Groq, Google Gemini, or Anthropic as needed.
+#### 3\. Deploy the Stack
 
----
+1.  **Edit `docker-compose.yml`**:
+      - Update the `image:` directives to point to your container registry paths.
+      - Change the `Host(\`dictation.yourdomain.com\`)\` label to your actual domain.
+2.  **Deploy using Portainer or the command line**:
+      - In Portainer, create a new "Stack" and paste the content of your `docker-compose.yml`.
+      - Alternatively, run `docker stack deploy -c docker-compose.yml dictation-ai` from your terminal.
 
-## Usage
-1. **Open the app** in your browser.
-2. **Choose input**: Record audio or upload a file.
-3. **Select transcription engine**: Local Whisper or OpenAI API.
-4. **Transcribe**: The audio is converted to text.
-5. **Polish**: Use an AI model to rephrase, summarize, or format the text.
-6. **Send**: Share the final result to Slack or via email.
+-----
 
----
+## Local Development
 
-## Frontend UI & Theming
-- **Icons**: Uses FontAwesome for all interface icons (microphone, upload, Slack, email, settings, theme toggle, etc).
-- **Button Design**: Circular action buttons (48x48px), main record button (72x72px) with pulse animation.
-- **Theming**: Supports dark/light mode via CSS custom properties. Toggle theme with sun/moon icons.
-- **Responsiveness**: Layout and icons adapt for desktop and mobile.
-- **Accessibility**: High-contrast color scheme, keyboard navigation, ARIA labels.
-
----
-
-## Contributing
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes
-4. Open a pull request with a clear description
-
-**Guidelines:**
-- Write clear, concise commit messages
-- Document new features in the README
-- Ensure code is linted and tested
-
----
-
-
-## Credits
-- [OpenAI Whisper](https://github.com/openai/whisper)
-- [FontAwesome](https://fontawesome.com/)
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [Groq](https://groq.com/)
-- [Google Gemini](https://gemini.google.com/)
-- [Anthropic](https://www.anthropic.com/)
-
----
-
-
-
-Use this method for testing and development on your local machine without Traefik.
-
-### 1\. Prerequisites
-
-  - Python 3.8+
-  - `ffmpeg`: Required for local transcription.
-      - **macOS**: `brew install ffmpeg`
-      - **Linux/Ubuntu**: `sudo apt update && sudo apt install ffmpeg`
-      - **Windows**: Download from the official website and add the `bin` folder to your system's PATH.
-
-### 2\. Backend Setup
-
-```bash
-# Navigate to the backend directory
-cd backend
-
-# Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate  # (or .\venv\Scripts\activate on Windows)
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the FastAPI server
-uvicorn main:app --reload
-```
-
-The backend API will now be running at `http://localhost:8000`.
-
-### 3\. Frontend Setup
-
-1.  **Modify `index.html` for local use**: Temporarily change all `fetch` URLs from `/api/` back to `http://localhost:8000/`.
-      - **Example**: Change `fetch("/api/transcribe", ...)` to `fetch("http://localhost:8000/transcribe", ...)`.
-2.  Open the `frontend/index.html` file directly in your web browser.
-
-## API Endpoints
-
-The backend provides the following endpoints, which are proxied through `/api/` in the production setup.
-
-  - `POST /transcribe`: Transcribes an audio file into raw text.
-  - `POST /polish`: Refines and formats raw text using a selected LLM provider.
-  - `POST /integrations/slack`: Sends the polished note to a Slack webhook.
-  - `POST /integrations/email`: Sends the polished note as an HTML email via SMTP.
+1.  **Backend**:
+    ```bash
+    cd backend
+    python -m venv venv
+    source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+    pip install -r requirements.txt
+    uvicorn main:app --reload
+    ```
+2.  **Frontend**:
+      - **Important**: In `frontend/main.js`, ensure the API calls are pointing to `http://localhost:8000`.
+      - Open `frontend/index.html` directly in your web browser.
