@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dictation AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+          integrity="sha512-dOxOgpZLEvK2npl2ap+Zf+4X+FPaRJ/mCH49aIxzXORF6i8FY1sH8giC8aKYvUL97+rcHz9rfLemHo5m8wq6/Q=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script>
+  // Fallback for FontAwesome if the CDN fails
+  document.addEventListener("DOMContentLoaded", function() {
+    var testIcon = document.createElement("i");
+    testIcon.className = "fas fa-microphone";
+    testIcon.style.display = "none";
+    document.body.appendChild(testIcon);
+    var iconFont = window.getComputedStyle(testIcon).getPropertyValue("font-family");
+    if (!iconFont || iconFont.indexOf("Font Awesome") === -1) {
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css";
+      document.head.appendChild(link);
+    }
+    document.body.removeChild(testIcon);
+  });
+</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.cdnfonts.com/css/sf-mono" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="integrationModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>Integration Settings</h2>
+        <form id="integrationForm">
+          <div class="integration-section">
+            <h3><i class="fab fa-slack"></i> Slack</h3>
+            <label for="slackWebhook">Webhook URL:</label>
+            <input type="password" id="slackWebhook" placeholder="https://hooks.slack.com/services/...">
+          </div>
+          
+          <div class="integration-section">
+            <h3><i class="fas fa-envelope"></i> Email (SMTP)</h3>
+            <label for="smtpEmail">Your Email (Sender):</label>
+            <input type="email" id="smtpEmail" placeholder="your@email.com">
+            <label for="recipientEmail">Recipient's Email:</label>
+            <input type="email" id="recipientEmail" placeholder="recipient@email.com">
+            <label for="smtpServer">SMTP Server:</label>
+            <input type="text" id="smtpServer" placeholder="smtp.yourdomain.com">
+            <label for="smtpPassword">SMTP Password:</label>
+            <input type="password" id="smtpPassword" placeholder="Application password">
+          </div>
+          
+          <button type="submit">Save Settings</button>
+        </form>
+      </div>
+    </div>
+    <div class="app-container">
+      <div class="note-area">
+        <div class="note-header">
+          <h1 class="app-main-title">Dictation AI</h1>
+          <div class="editor-title" contenteditable="true" placeholder="Untitled Note">
+            Untitled Note
+          </div>
+        </div>
+        <div class="main-layout">
+          <aside class="sidebar">
+            <div class="sidebar-section">
+              <h3>Transcription Engine</h3>
+              <div class="radio-option">
+                <label for="engineLocal">Local Whisper (Maximum Privacy)</label>
+                <input type="radio" name="engineSource" id="engineLocal" value="local" checked>
+              </div>
+              <div class="radio-option">
+                <label for="engineOpenAI">OpenAI Whisper  (Speed)</label>
+                <input type="radio" name="engineSource" id="engineOpenAI" value="openai">
+              </div>
+              <div class="radio-option">
+                <label for="engineDeepgram">Deepgram  (Speed)</label>
+                <input type="radio" name="engineSource" id="engineDeepgram" value="deepgram">
+              </div>
+              
+              <div id="localModelOptions" style="margin-top: 12px;">
+                <label for="modelSize">Whisper Model Size:</label>
+                <select id="modelSize">
+                  <option value="small" selected>Small (Fast)</option>
+                  <option value="medium">Medium (Balanced)</option>
+                  <option value="large">Large (Best Quality)</option>
+                </select>
+              </div>
+              
+              <div id="transcriptionApiKeyField" style="margin-top: 12px; display: none;">
+                <label for="transcriptionApiKey">API Key:</label>
+                <input type="password" id="transcriptionApiKey" placeholder="API Key...">
+              </div>
+              <p class="help-text">
+                Local mode is secure but slower. API modes are faster.
+              </p>
+            </div>
+            <div class="sidebar-section">
+              <h3>Custom Context</h3>
+              <label for="companyContext">Company Jargon & Names:</label>
+              <input type="text" id="companyContext" placeholder="E.g., RHEI, AOP-01, Squad Phoenix">
+              
+              <label for="projectContext" style="margin-top: 12px;">Project Details:</label>
+              <textarea id="projectContext" placeholder="E.g., The goal of this project is to optimize..."></textarea>
+              <p class="help-text">
+                Provide context to improve AI accuracy.
+              </p>
+            </div>
+            <div class="sidebar-section">
+              <h3>Polish & Integrate</h3>
+              <label for="polishProvider">Polishing Provider:</label>
+              <select id="polishProvider">
+                <optgroup label="OpenAI">
+                  <option value="gpt-4o-2024-05-13">GPT-4o</option>
+                  <option value="o4-mini-2025-04-16">GPT-4o Mini</option>
+                  <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                  <option value="o3-2025-04-16">GPT-o3</option>
+                </optgroup>
+                <optgroup label="Groq">
+                  <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+                  <option value="llama-3.3-70b-versatile">Llama 3.1 70B</option>
+                  <option value="meta-llama/llama-4-maverick-17b-128e-instruc">Llama 4 Maverick 17B</option>
+                  <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout 17B</option>
+                </optgroup>
+                <optgroup label="Google">
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                </optgroup>
+                <optgroup label="Anthropic">
+                  <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                  <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                  <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
+                  <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                </optgroup>
+              </select>
+              <div id="polishApiKeyContainer" style="margin-top: 12px;">
+                <label for="polishApiKey">Provider API Key:</label>
+                <input type="password" id="polishApiKey" placeholder="API Key...">
+              </div>
+              <button id="polishButton" class="primary-button" style="margin-top: 16px;">
+                Polish Text
+              </button>
+              <div id="integration-actions">
+                  <button id="sendSlackButton" class="secondary-button" disabled>Send to Slack</button>
+                  <button id="sendEmailButton" class="secondary-button" disabled>Send by Email</button>
+              </div>
+            </div>
+            <div class="sidebar-section">
+                <h3>Settings</h3>
+                <button id="openIntegrationSettings" class="secondary-button">
+                    <i class="fas fa-cog"></i> Configure Integrations
+                </button>
+            </div>
+            </aside>
+            <div class="note-content-container">
+            <div class="note-tabs">
+                <button class="tab-button active" data-tab="polishedNote">Polished Note</button>
+                <button class="tab-button" data-tab="rawTranscription">Raw Transcription</button>
+            </div>
+            <div class="note-content-wrapper">
+              <div id="polishedNote" class="note-content active" contenteditable="true" placeholder="Your polished notes will appear here..."></div>
+              <div id="rawTranscription" class="note-content" contenteditable="true" placeholder="The raw transcription will appear here..."></div>
+            </div>
+            </div>
+        </div>
+    </div>
+    <div class="recording-interface">
+        <div class="status-indicator">
+          <span id="recordingStatus" class="status-text">Ready to record</span>
+        </div>
+        <div class="recording-controls">
+          <button class="action-button" id="themeToggleButton" title="Toggle Theme">
+            <i class="fas fa-sun"></i>
+          </button>
+          
+          <input type="file" id="audioUpload" accept="audio/*" style="display: none;">
+          <button class="action-button" id="uploadButton" title="Upload Audio File">
+            <i class="fas fa-upload"></i>
+          </button>
+          <button id="recordButton" class="record-button" title="Start/Stop Recording">
+            <i class="fas fa-microphone"></i>
+          </button>
+          <button class="action-button" id="newButton" title="New Note / Clear">
+            <i class="fas fa-file"></i>
+          </button>
+        </div>
+        <div class="developer-credit">
+          Developed by Ben Rebello
+        </div>
+    </div>
+    <script src="main.js"></script>
+  </body>
+</html>

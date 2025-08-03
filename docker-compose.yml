@@ -1,0 +1,43 @@
+version: "3.7"
+
+services:
+  backend:
+    build: ./backend
+    networks:
+      - servidor
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4096M
+
+  frontend:
+    build: ./frontend
+    networks:
+      - servidor
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.dictation.rule=Host(`dictation.yourdomain.com`)"
+        - "traefik.http.routers.dictation.entrypoints=websecure"
+        - "traefik.http.routers.dictation.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.dictation.service=dictation-svc"
+        - "traefik.http.services.dictation-svc.loadbalancer.server.port=80"
+        - "traefik.http.services.dictation-svc.loadbalancer.passHostHeader=true"
+
+networks:
+  servidor:
+    external: true

@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+openai
+groq
+google-generativeai
+requests
+openai-whisper
+markdown-it-py
+pydantic[email]
+anthropic
+deepgram-sdk
