@@ -106,12 +106,12 @@ dictation_AI/
 1. **Clone the repository**
 2. **Edit `docker-compose.yml`**: Set your domain, Traefik labels, and network.
 3. **Configure environment variables** (see below).
-4. **Upload container in ghcr.io**: 
-4.1 ***Access your repo with terminal***: use a command
+4. **Upload container in ghcr.io**
+***Access your repo with terminal***: use a command
  ```bash
   docker login ghcr.io -u YOUR_USER_GITHUB
   ```
-4.2 ***Access your repo with terminal***: create and send images of back and front:
+***Access your repo with terminal***: create and send images of back and front:
   ```bash
   docker build -t ghcr.io/youruser/dictation-backend:latest ./backend
 
@@ -122,7 +122,7 @@ dictation_AI/
   docker push ghcr.io/benrebello/dictation-frontend:latest
  ```
 
-5.  **Deploy on yout server**: use a docker-compose.yml and rename images
+5. **Deploy on yout server**: use a docker-compose.yml and rename images
 6. **Access the app at** `https://dictation.your-domain.com`
 
 ### Local Development
@@ -150,22 +150,6 @@ dictation_AI/
 ---
 
 ## Configuration
-
-### Environment Variables
-Set these variables in your environment or Docker Compose file:
-
-| Variable                | Description                        |
-|-------------------------|------------------------------------|
-| `OPENAI_API_KEY`        | OpenAI Whisper/LLM API key         |
-| `GROQ_API_KEY`          | Groq LLM API key (optional)        |
-| `GEMINI_API_KEY`        | Google Gemini API key (optional)   |
-| `SLACK_WEBHOOK_URL`     | Slack Incoming Webhook URL         |
-| `SMTP_HOST`             | SMTP server hostname               |
-| `SMTP_PORT`             | SMTP server port                   |
-| `SMTP_USER`             | SMTP username                      |
-| `SMTP_PASS`             | SMTP password                      |
-| `EMAIL_FROM`            | Sender email address               |
-| `EMAIL_TO`              | Recipient email address            |
 
 ### Integrations
 - **Slack**: Create an Incoming Webhook, set `SLACK_WEBHOOK_URL`.
@@ -206,10 +190,6 @@ Set these variables in your environment or Docker Compose file:
 
 ---
 
-## License
-MIT License. See [LICENSE](LICENSE) for details.
-
----
 
 ## Credits
 - [OpenAI Whisper](https://github.com/openai/whisper)
